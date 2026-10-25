@@ -43,3 +43,5 @@ Thumbs.db
 #   data/            the two raw UCI tables - the loaders verify rows/cols on read
 #   results/         the 3-seed artefacts that the "frozen cohort" mode renders
 #                    and that every number in README.md is quoted from
+# Static site build output (regenerate: python make_site.py)
+site/
