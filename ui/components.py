@@ -121,10 +121,16 @@ def chart(fig: go.Figure, height: Optional[int] = None) -> None:
                                   size=PLOT["font_size"], color="#16283C")),
         title=dict(x=0.0, xanchor="left", font=dict(size=14.5,
                  color="#0B1F33")),
-        legend=dict(orientation="h", yanchor="bottom", y=1.0,
-                    xanchor="left", x=0, bgcolor="rgba(0,0,0,0)"),
         bargap=0.22,
     )
+    # The horizontal-above-the-axes legend is a *default*, not an override: the
+    # small-multiples figures place theirs below the axes on purpose, and setting
+    # it unconditionally here pushed that legend back on top of their subplot
+    # titles.
+    if not (fig.layout.legend or {}).orientation:
+        fig.update_layout(legend=dict(orientation="h", yanchor="bottom",
+                                      y=1.0, xanchor="left", x=0,
+                                      bgcolor="rgba(0,0,0,0)"))
     fig.update_layout(height=height or fig.layout.height or 380)
     leg = fig.layout.legend
     if leg and leg.orientation == "h" and (leg.y or 1.0) >= 1.0:
