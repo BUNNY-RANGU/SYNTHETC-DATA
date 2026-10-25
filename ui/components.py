@@ -99,7 +99,16 @@ def note(text: str, kind: str = "info") -> None:
 
 
 def chart(fig: go.Figure, height: Optional[int] = None) -> None:
-    """Apply the house layout and render, without the plotly toolbar."""
+    """Apply the house layout and render, without the plotly toolbar.
+
+    The explicit height is not cosmetic. With `use_container_width=True`,
+    Streamlit 1.30 gives the plotly wrapper a container of height 0 when the
+    figure has no `layout.height`, so the SVG paints over whatever block follows
+    it - which reads as a table sitting on top of its own chart. Every figure
+    therefore leaves here with a height, and a horizontal legend placed above
+    the axes gets the top margin it needs so the title and legend cannot collide
+    with the plot.
+    """
     fig.update_layout(
         font=dict(family=PLOT["font_family"], size=PLOT["font_size"],
                   color="#16283C"),
@@ -116,8 +125,13 @@ def chart(fig: go.Figure, height: Optional[int] = None) -> None:
                     xanchor="left", x=0, bgcolor="rgba(0,0,0,0)"),
         bargap=0.22,
     )
-    if height:
-        fig.update_layout(height=height)
+    fig.update_layout(height=height or fig.layout.height or 380)
+    leg = fig.layout.legend
+    if leg and leg.orientation == "h" and (leg.y or 1.0) >= 1.0:
+        fig.update_layout(margin=dict(
+            t=max(int(fig.layout.margin.t or 0), 80),
+            l=fig.layout.margin.l, r=fig.layout.margin.r,
+            b=fig.layout.margin.b))
     for axis in ("xaxis", "yaxis"):
         fig.update_layout(**{axis: dict(showgrid=True, gridcolor=PLOT["grid"],
                                          zeroline=False,

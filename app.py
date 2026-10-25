@@ -440,6 +440,27 @@ def tab_privacy(ds, syn: pd.DataFrame, view: Dict):
                "and auxiliary data.")
 
 
+def parse_verdict(line: str) -> Optional[Tuple[str, str, str, str]]:
+    """Split a pipeline verdict line into (number, label, token, detail).
+
+    `run_pipeline.acceptance_verdict` emits two shapes - "1. label: PASS
+    (detail)" and "4. label: detail (PASS)" - and reading only the first made
+    criterion 4 lose its badge. The app reuses the pipeline's own verdicts rather
+    than recomputing them, so the deployed page can never disagree with
+    results/acceptance_<dataset>.txt.
+    """
+    token = next((t for t in ("PASS", "FAIL", "CHECK") if t in line), None)
+    if token is None:
+        return None
+    num, _, tail = line.partition(".")
+    before, _, after = tail.partition(token)
+    label_part, sep, detail_part = before.partition(": ")
+    if not sep:
+        label_part, detail_part = before, ""
+    detail = " ".join(f"{detail_part} {after}".split()).strip("() ")
+    return (num.strip(), label_part.strip().strip(":").strip(), token, detail)
+
+
 def tab_comparison(summary: Optional[pd.DataFrame], dataset: str):
     section("Published experiment", "3 seeds")
     if summary is None:
@@ -486,6 +507,7 @@ def tab_comparison(summary: Optional[pd.DataFrame], dataset: str):
                "the mean is over fewer runs. Stated, not hidden.")
 
     c1, c2 = st.columns(2)
+    pretty = [DISPLAY.get(m, m) for m in g.model]
     with c1:
         chart(charts.model_bars(
             g, "fid_spearman_gap_mean", "fid_spearman_gap_std",
@@ -494,29 +516,25 @@ def tab_comparison(summary: Optional[pd.DataFrame], dataset: str):
                 g.fid_floor_spearman_gap_mean)),
              "naive baseline": float(
                  g.loc[g.model == "naive", "fid_spearman_gap_mean"].iloc[0])},
-            horizontal=True), height=None)
+            horizontal=True, labels=pretty), height=None)
     with c2:
         chart(charts.model_bars(
             g, "tstr_lr_auc_mean", "tstr_lr_auc_std",
             "TSTR AUC (LogReg) · higher is better", "AUC",
             {"TRTR ceiling": float(np.nanmean(g.trtr_lr_auc_mean))},
-            horizontal=True), height=None)
+            horizontal=True, labels=pretty), height=None)
 
     section("Acceptance criteria", "measured")
     from run_pipeline import acceptance_verdict
     for line in acceptance_verdict(g):
-        head, _, rest = line.partition(": ")
-        mark = "good"
-        if "FAIL" in head:
-            mark = "bad"
-        elif "CHECK" in head:
-            mark = "warn"
-        num = head.split(".")[0].strip()
-        label = f"{num} · {head.split('.', 1)[1].strip()}" if "." in head \
-            else head
-        token = "PASS" if "PASS" in head else ("FAIL" if "FAIL" in head else
-                                               "CHECK")
-        verdict(f"{token} — {label}", mark, note=rest[:150])
+        parsed = parse_verdict(line)
+        if parsed is None:
+            verdict("note", "neutral", note=line.split(".", 1)[-1].strip())
+            continue
+        num, label, token, detail = parsed
+        verdict(f"{num} · {label} — {token}",
+                {"PASS": "good", "FAIL": "bad", "CHECK": "warn"}[token],
+                note=detail[:160])
 
 
 # ---------------------------------------------------------------------------
@@ -526,6 +544,26 @@ def _f(v) -> str:
     except (TypeError, ValueError):
         return "n/a"
     return f"{f:.3f}" if np.isfinite(f) else "n/a"
+
+
+HP_LABEL = {"epochs": "epochs", "batch_size": "batch", "latent_dim": "latent",
+            "hidden_dims": "hidden", "lr": "lr", "beta_max": "β max",
+            "kl_anneal_epochs": "KL anneal", "w_num": "w numeric",
+            "w_cat": "w categorical", "obs_noise": "observation noise",
+            "jitter": "jitter", "target_epsilon": "ε target",
+            "max_grad_norm": "clip norm", "sigma": "σ", "steps": "steps",
+            "cohort": "cohort", "rows": "rows"}
+
+
+def hp_line(hp: Dict) -> str:
+    """Humanise the fitted hyper-parameters for display.
+
+    Keys starting with "_" are internal bookkeeping - `_d` is just the diversity
+    slider echoed back - and printing raw attribute names turns the header into a
+    debug console.
+    """
+    return " · ".join(f"{HP_LABEL.get(k, k)} {v}" for k, v in hp.items()
+                      if not str(k).startswith("_"))
 
 
 def main() -> None:
@@ -623,11 +661,15 @@ def main() -> None:
                                    seed=cfg["seed"]),
             "curve": load_curve(),
             "published": {
+                # Comparing a live naive cohort against the published naive
+                # mean is a tautology dressed as a result, so the reference line
+                # only appears for the models that are supposed to beat it.
                 "naive_gap": (float(summary[(summary.dataset == cfg["dataset"])
                                             & (summary.model == "naive")]
                                    ["fid_spearman_gap_mean"].iloc[0])
                               if summary is not None and
-                              (summary.model == "naive").any() else None),
+                              (summary.model == "naive").any()
+                              and cfg["model_name"] != "naive" else None),
                 "tstr_lr_auc": (f"{published_row['tstr_lr_auc_mean']:.3f} ± "
                                 f"{published_row['tstr_lr_auc_std']:.3f}"
                                 if published_row is not None else "n/a"),
@@ -650,8 +692,8 @@ def main() -> None:
             f"{live.get('fid_floor_spearman_gap', float('nan')):.3f}",
             "default")])
 
-    st.caption(" · ".join([f"**{k}** {v}" for k, v in hp_used.items()])
-               if hp_used else "")
+    if hp_line(hp_used):
+        st.caption(hp_line(hp_used))
 
     t1, t2, t3, t4 = st.tabs(["Fidelity", "Utility", "Privacy",
                               "Model comparison"])

@@ -19,6 +19,12 @@ Pick a generator, drag the patient-count and diversity sliders, filter by
 disease class, download the cohort as CSV. Four tabs: live fidelity, live TSTR
 utility, live privacy audit, and the frozen 3-seed experiment.
 
+Two modes, one metric path. **Live** fits the generator from your sliders;
+**frozen** loads the seed-0 cohort the published sweep actually stored
+(`results/<dataset>/syn_<model>_seed0.csv`), so the page renders instantly and
+scores the same rows the report measured. Both go through `synth.metrics` — there
+is no second implementation for the UI to drift away from.
+
 ## Reproduce the numbers
 
 ```bash

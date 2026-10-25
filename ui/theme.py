@@ -92,13 +92,14 @@ PLOT = {
 # Stylesheet
 # ---------------------------------------------------------------------------
 CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;
-600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 html, body, [class*="css"], button, input, select {
   font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 #MainMenu, header [data-testid="stDeployButton"], footer { visibility: hidden; }
+/* Streamlit's default 2 px rainbow strip along the top edge. */
+#stDecoration { display: none; }
 [data-testid="stHeader"] { background: transparent; height: 3.1rem; }
 [data-testid="stAppViewContainer"] > .main { padding: 1.6rem 2.4rem 4rem; }
 .block-container { padding-top: 0; max-width: 1400px; }
@@ -166,19 +167,23 @@ div[data-testid="stSidebarContent"] { padding-top: 1.4rem; }
 .hero .meta { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .95rem;
   position: relative; z-index: 1; }
 
-/* ---------- chips / pills ---------- */
+/* ---------- chips / pills ----------
+   Two surfaces, deliberately separate rules. A pill under the hero sits on
+   white, so it needs a light fill; the same class inside the hero band sits on
+   navy, so it needs the translucent inverse. Writing only the dark variant made
+   the status row invisible against the page. */
 .pill {
   display: inline-flex; align-items: center; gap: .38rem; padding: .26rem .7rem;
   border-radius: 999px; font-size: .735rem; font-weight: 600;
-  background: rgba(255,255,255,.12); color: #EAF3FA;
-  border: 1px solid rgba(255,255,255,.18); white-space: nowrap;
+  background: #F1F5F9; color: #33475B; border: 1px solid #E3E9F0;
+  white-space: nowrap;
 }
 .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.pill.solid { background: #fff; color: #0B1F33; border-color: #fff; }
-.pill.live  { background: rgba(0,158,115,.22); border-color: rgba(0,158,115,.5);
-  color: #8FE6CB; }
-.pill.frozen{ background: rgba(86,180,233,.18); border-color: rgba(86,180,233,.45);
-  color: #BBDDF6; }
+.pill.live  { background: #E7F6EF; border-color: #C4E9D8; color: #0B6E4F; }
+.pill.frozen{ background: #EAF2FB; border-color: #CFE4F5; color: #0B5D91; }
+.hero .pill { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.18);
+  color: #EAF3FA; }
+.hero .pill.solid { background: #fff; color: #0B1F33; border-color: #fff; }
 .chip {
   display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .6rem;
   border-radius: 8px; font-size: .74rem; font-weight: 600;

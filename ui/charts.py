@@ -81,7 +81,10 @@ def marginals(test: pd.DataFrame, syn: pd.DataFrame, cols: List[str]
         fig.update_xaxes(range=[lo, hi], showgrid=True, gridcolor=GRID)
         fig.update_yaxes(showgrid=True, gridcolor=GRID,
                          title_text="density" if i == 1 else None)
-    fig.update_layout(height=270, margin=dict(l=8, r=8, t=64, b=8),
+    fig.update_layout(height=300, margin=dict(l=8, r=8, t=44, b=52),
+                      legend=dict(orientation="h", yanchor="top", y=-0.16,
+                                  xanchor="center", x=0.5,
+                                  bgcolor="rgba(0,0,0,0)"),
                       title="Marginal overlays against the held-out real data")
     return fig
 
@@ -126,6 +129,7 @@ def correlations(real: pd.DataFrame, syn: pd.DataFrame) -> go.Figure:
             v = [-np.nanmax(np.abs(diff)) or -1, np.nanmax(np.abs(diff)) or 1]
         fig.add_trace(go.Heatmap(z=M, x=names, y=names, colorscale=cs,
                                  zmin=v[0], zmax=v[1], showscale=(i == 3),
+                                 showlegend=False,
                                  colorbar=dict(thickness=10, len=0.9,
                                                title="Δ" if i == 3 else None),
                                  hovertemplate="%{x} vs %{y}<br>"
@@ -140,22 +144,25 @@ def correlations(real: pd.DataFrame, syn: pd.DataFrame) -> go.Figure:
 
 
 def utility(res: Dict, ceiling_note: str = "TRTR AUC ceiling") -> go.Figure:
+    clf_names = ["Logistic Regression", "Random Forest"]
     fig = go.Figure()
     for name, key, color in (("TSTR accuracy", "accuracy", OKABE_ITO["sky_blue"]),
                              ("TSTR F1", "f1", OKABE_ITO["blue"]),
                              ("TSTR AUC", "auc", OKABE_ITO["bluish_green"])):
-        fig.add_trace(_bar(["Logistic Regression", "Random Forest"],
+        fig.add_trace(_bar(clf_names,
                            [res[f"tstr_lr_{key}"], res[f"tstr_rf_{key}"]],
                            name, color))
-    x = np.arange(2)
-    for key, color in (("auc", INK),):
-        fig.add_trace(go.Scatter(
-            x=x, y=[res[f"trtr_lr_{key}"], res[f"trtr_rf_{key}"]],
-            mode="markers+lines", name=ceiling_note,
-            line=dict(color=color, width=2, dash="dash"),
-            marker=dict(symbol="line-ew", size=26, color=color,
-                        line=dict(width=2.4)),
-            hovertemplate="ceiling %{y:.3f}<extra></extra>"))
+    # The ceiling markers must be placed with the same *category* labels as the
+    # bars. Passing numeric x here makes plotly invent a second, linear x-axis
+    # and the ceiling line silently detaches from the groups it describes.
+    fig.add_trace(go.Scatter(
+        x=clf_names,
+        y=[res["trtr_lr_auc"], res["trtr_rf_auc"]],
+        mode="markers+lines", name=ceiling_note,
+        line=dict(color=INK, width=2, dash="dash"),
+        marker=dict(symbol="line-ew", size=26, color=INK,
+                    line=dict(width=2.4)),
+        hovertemplate="ceiling %{y:.3f}<extra></extra>"))
     fig.update_layout(barmode="group", title="Train-on-synthetic, test-on-real",
                       yaxis_title="score", yaxis_range=[0, 1.06],
                       legend=dict(orientation="h", y=1.16))
@@ -217,44 +224,59 @@ def epsilon_curve(curve: pd.DataFrame) -> go.Figure:
                          title_text="ε (smaller = more private)",
                          showgrid=True, gridcolor=GRID, row=1, col=col)
         fig.update_yaxes(showgrid=True, gridcolor=GRID, row=1, col=col)
-    fig.update_layout(height=340, margin=dict(l=8, r=8, t=64, b=8),
+    fig.update_layout(height=360, margin=dict(l=8, r=8, t=64, b=56),
+                      legend=dict(orientation="h", yanchor="top", y=-0.14,
+                                  xanchor="center", x=0.5,
+                                  bgcolor="rgba(0,0,0,0)"),
                       title="The privacy trade-off, measured")
     return fig
 
 
 def model_bars(g: pd.DataFrame, mean_col: str, std_col: Optional[str],
                title: str, ylab: str, ref_lines: Dict[str, float],
-               horizontal: bool = False) -> go.Figure:
-    """One bar per model, coloured by the shared model palette."""
+               horizontal: bool = False,
+               labels: Optional[Sequence[str]] = None) -> go.Figure:
+    """One bar per model, coloured by the shared model palette.
+
+    `labels` is the display text; the colour still comes from the raw model key,
+    so a prettier label cannot silently break the palette link to the figures.
+    """
+    names = list(labels) if labels is not None else list(g.model)
+    colors = [palette_for(m) for m in g.model]
     fig = go.Figure()
     err = (np.nan_to_num(g[std_col].to_numpy(float)) if std_col
            and std_col in g else None)
+    # Reference lines are annotated on alternating corners. Two `add_vline`
+    # annotations on the same side overlap into unreadable text, which is what
+    # happens when the floor and the naive baseline sit close together.
+    anchors = ["top right", "bottom right", "top left", "bottom left"]
     if horizontal:
         fig.add_trace(go.Bar(
-            y=list(g.model), x=g[mean_col].to_numpy(float), orientation="h",
-            marker_color=[palette_for(m) for m in g.model],
+            y=names, x=g[mean_col].to_numpy(float), orientation="h",
+            marker_color=colors,
             error_x=dict(type="data", array=err, color="#7A8CA0", width=2),
             hovertemplate="%{y}<br>%{x:.4f}<extra></extra>", showlegend=False))
-        for name, value in ref_lines.items():
+        for i, (name, value) in enumerate(ref_lines.items()):
             fig.add_vline(x=value, line=dict(color="#7A8CA0", width=1.6,
                                              dash="dot"),
                           annotation_text=name, annotation_font_size=10,
-                          annotation_position="top right")
+                          annotation_position=anchors[i % len(anchors)])
         fig.update_xaxes(title_text=ylab, showgrid=True, gridcolor=GRID)
         fig.update_yaxes(autorange="reversed", tickfont=dict(size=10))
         fig.update_layout(height=60 + 40 * len(g))
     else:
         fig.add_trace(go.Bar(
-            x=list(g.model), y=g[mean_col].to_numpy(float),
-            marker_color=[palette_for(m) for m in g.model],
+            x=names, y=g[mean_col].to_numpy(float),
+            marker_color=colors,
             error_y=dict(type="data", array=err, color="#7A8CA0", width=2),
             hovertemplate="%{x}<br>%{y:.4f}<extra></extra>", showlegend=False))
-        for name, value in ref_lines.items():
+        for i, (name, value) in enumerate(ref_lines.items()):
             fig.add_hline(y=value, line=dict(color="#7A8CA0", width=1.6,
                                              dash="dot"),
-                          annotation_text=name, annotation_font_size=10)
+                          annotation_text=name, annotation_font_size=10,
+                          annotation_position=anchors[i % len(anchors)])
         fig.update_yaxes(title_text=ylab, showgrid=True, gridcolor=GRID)
         fig.update_xaxes(tickfont=dict(size=9))
     fig.update_layout(title=title, margin=dict(l=8, r=8, t=56, b=8),
-                      bargap=0.3)
+                      bargap=0.3, showlegend=False)
     return fig
