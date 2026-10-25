@@ -1,0 +1,7 @@
+dataset=pima seeds=[0, 1, 2] n_syn=1000 quick=False
+1. VAE correlation gap below naive: PASS (naive 0.2134 -> VAE 0.0907, 57.5% reduction)
+2. TSTR AUC >= 90% of TRTR AUC: PASS (best = tvae/LR at 99.1% retention)
+3. DP-VAE distance-based MIA AUC near 0.5: PASS (eps->AUC: 1:0.514, 3:0.514, 10:0.508, 30:0.510)
+3a. likelihood-gap MIA (non-DP at same budget 0.528) -> eps1:0.521, eps3:0.520, eps10:0.521, eps30:0.522
+3b. Visible utility trade-off across epsilon: PASS (TSTR AUC spread 0.0569)
+4. Exact-copy rate: worst model 0.000% (PASS)

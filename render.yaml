@@ -1,0 +1,29 @@
+# Render.com blueprint - one-click deploy of the web app.
+#
+# Dashboard route: New + -> Blueprint -> connect the GitHub repo that holds this
+# project. Render reads this file and creates the service.
+#
+# RAM: torch + scikit-learn + plotly import at start-up. The 512 MB free tier is
+# tight and can be OOM-killed while loading the DP-VAE; `starter` (paid) is the
+# honest minimum for the live-training mode. Frozen-cohort mode loads the same
+# libraries, so the requirement does not change with the mode.
+
+services:
+  - type: web
+    name: synthetic-medical-data-generator
+    runtime: python
+    plan: starter
+    region: singapore          # closest to India; change if you need another
+    buildCommand: pip install -r requirements.txt
+    startCommand: >-
+      python -m streamlit run app.py
+      --server.port=$PORT
+      --server.address=0.0.0.0
+      --server.headless=true
+    healthCheckPath: /_stcore/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PIP_DISABLE_PIP_VERSION_CHECK
+        value: "1"

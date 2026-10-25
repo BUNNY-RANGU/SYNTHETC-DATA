@@ -1,0 +1,32 @@
+{
+  "dp_vae": {
+    "heart": {
+      "beta_max": 0.3,
+      "epsilon_note": "epsilon swept in pipeline",
+      "latent_dim": 8,
+      "obs_noise": true,
+      "w_num": 20.0
+    },
+    "pima": {
+      "beta_max": 0.3,
+      "epsilon_note": "epsilon swept in pipeline",
+      "latent_dim": 32,
+      "obs_noise": true,
+      "w_num": 120.0
+    }
+  },
+  "vae": {
+    "heart": {
+      "beta_max": 0.3,
+      "latent_dim": 8,
+      "obs_noise": true,
+      "w_num": 20.0
+    },
+    "pima": {
+      "beta_max": 0.3,
+      "latent_dim": 32,
+      "obs_noise": true,
+      "w_num": 120.0
+    }
+  }
+}

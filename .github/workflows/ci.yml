@@ -1,0 +1,66 @@
+name: CI
+
+# What this guards, in order: the data/protocol layer, the model interfaces, the
+# DP path, the metric definitions, then the app itself under Streamlit's own
+# ScriptRunner. The full 3-seed sweep is NOT run here - it is ~55 minutes of CPU
+# and its output is committed in results/. CI re-derives a quick single-seed run
+# instead, to prove the pipeline still executes end to end.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install (CPU torch wheel, so the runner does not pull CUDA)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r requirements.txt
+
+      - name: Data layer - schemas, cleaning, 60/20/20 split, no leakage
+        run: python tests/test_data.py
+
+      - name: Models - interface, clipping, rounding, diversity knob
+        run: python tests/test_models.py
+
+      - name: Metrics - NaN handling, edge cases, noise floor
+        run: python tests/test_metrics.py
+
+      - name: Differential privacy - accountant, clipping, unwrapping
+        run: python tests/test_dp.py
+
+      - name: Pipeline smoke - one dataset, one seed, reduced epochs
+        run: python run_pipeline.py --quick --datasets heart --seeds 0
+
+      - name: App - frozen published cohorts through Streamlit's ScriptRunner
+        run: python tests/test_app_apptest.py --groups frozen
+
+      - name: Upload the smoke-run artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-run-heart
+          path: |
+            results/results_summary.csv
+            results/acceptance_heart.txt
+          if-no-files-found: ignore

@@ -1,0 +1,29 @@
+# Requirements - Synthetic Medical Data Generator
+#
+# Verified working set (what this project was actually built and tested with):
+#   Python 3.11.9, CPU-only (torch.cuda.is_available() == False)
+#
+# Install:
+#   pip install -r requirements.txt
+#
+# Note on Opacus: opacus 1.6.0 works against torch 2.10 here. If you pin an
+# older torch, check Opacus's supported-version matrix before assuming the
+# DP-SGD path will validate the model.
+
+numpy>=1.24,<2.0
+pandas>=2.0
+scipy>=1.10
+scikit-learn>=1.3
+matplotlib>=3.7
+
+torch>=2.0
+opacus>=1.4
+ctgan>=0.7
+
+streamlit>=1.30
+plotly>=5.18          # the web app's interactive figures
+
+# Only needed to regenerate / execute the notebook
+nbformat>=5.9
+nbclient>=0.8
+ipykernel>=6.0

@@ -1,0 +1,26 @@
+# Streamlit configuration - Synthetic Medical Data Generator
+#
+# Only the handful of surfaces Streamlit's own theming reaches live here.
+# Everything else is in ui/theme.py, keyed on data-testid selectors, because
+# these keys are not expressive enough to style a sidebar or a KPI card.
+
+[theme]
+base = "light"
+primaryColor = "#0072B2"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F8FB"
+textColor = "#16283C"
+font = "sans serif"
+
+[server]
+headless = true
+port = 8501
+maxUploadSize = 10
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true

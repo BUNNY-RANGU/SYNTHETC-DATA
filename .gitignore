@@ -1,0 +1,45 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Build artefacts (regenerate with `python make_dist.py`)
+synthetic_medical_data.zip
+*.egg-info/
+build/
+dist/
+
+# Notebook scratch outputs (the notebook itself is committed, its side-outputs
+# are not - they are reproducible with `python make_notebook.py --execute`)
+notebook_results.csv
+notebook_synthetic_*.csv
+
+# Logs and temp
+*.log
+results/_*.log
+results/_*.txt
+.ipynb_checkpoints/
+
+# Secrets and local overrides - never commit these
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# KEEP committed on purpose (they are inputs to the deployed app):
+#   data/            the two raw UCI tables - the loaders verify rows/cols on read
+#   results/         the 3-seed artefacts that the "frozen cohort" mode renders
+#                    and that every number in README.md is quoted from

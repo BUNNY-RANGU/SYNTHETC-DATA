@@ -1,0 +1,7 @@
+dataset=heart seeds=[0, 1, 2] n_syn=1000 quick=False
+1. VAE correlation gap below naive: PASS (naive 0.1839 -> VAE 0.1171, 36.3% reduction)
+2. TSTR AUC >= 90% of TRTR AUC: PASS (best = vae_dp_budget/LR at 99.5% retention)
+3. DP-VAE distance-based MIA AUC near 0.5: PASS (eps->AUC: 1:0.542, 3:0.569, 10:0.591, 30:0.591)
+3a. likelihood-gap MIA (non-DP at same budget 0.583) -> eps1:0.583, eps3:0.590, eps10:0.597, eps30:0.599
+3b. Visible utility trade-off across epsilon: PASS (TSTR AUC spread 0.0797)
+4. Exact-copy rate: worst model 0.000% (PASS)
